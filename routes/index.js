@@ -56,12 +56,9 @@ async function getNearbyLocation(latlng) {
   let query = '';
   const args = [];
 
-  query = `SELECT 
-            *
-          FROM locations
-          LIMIT 20
-        
-`;
+  query = `SELECT text_show as title, source, description as content, reportedDate as createdAt 
+           FROM redangpow_markers ;
+        `;
   
 
     // using like and % instead of =
