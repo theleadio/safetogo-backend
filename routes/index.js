@@ -56,7 +56,7 @@ async function getNearbyLocation(latlng) {
   let query = '';
   const args = [];
 
-  query = `SELECT text_show as title, source, description as content, reportedDate as createdAt, lat, lng, locationName, 
+  query = `SELECT text_show as title, source, reportedDate as createdAt, lat, lng, locationName, 
            FROM redangpow_markers ;
         `;
   
