@@ -71,6 +71,32 @@ async function getNearbyLocation(latlng) {
   // return result[0] && result[0][0] || { country, num_confirm: '?', num_dead: '?', num_heal: '?', created: null };
 }
 
+router.post('/new-post', asyncHandler(async function (req, res, next){
+  const newPost = req.body;
+  try{
+    console.log(req.body)
+    const results = await insertNews(newPost);
+    return res.json(results)
+  }
+  catch(error){
+    console.log('[/new-post] error', error);
+    return res.json(error);
+  }
+}));
+
+async function insertNews(newPost){
+  const conn = db.conn.promise();
+  let query = ''
+  const args = []
+  query = `INSERT INTO safetogo_markers (title, content, source, createdBy, email, img_url, locationName, lat, lng, reportedDate) VALUES 
+  ('${newPost["title"]}', '${newPost["content"]}', '${newPost["source"]}', '${newPost["createdBy"]}',
+  '${newPost["email"]}', '${newPost["img_url"]}', '${newPost["locationName"]}', ${newPost["lat"]}, ${newPost["lng"]}, '${newPost["reportedDate"]}')`
+  console.log(query)
+  let result = await conn.query(query, args);
+  console.log(result[0])
+  return result[0]
+}
+
 async function getTopStats(limit = 7) {
   limit = parseInt(limit);
 
