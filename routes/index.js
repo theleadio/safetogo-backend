@@ -70,7 +70,63 @@ async function getNearbyLocation(latlng) {
   return result[0];
   // return result[0] && result[0][0] || { country, num_confirm: '?', num_dead: '?', num_heal: '?', created: null };
 }
+// search-result
 
+router.post('/search-result', asyncHandler(async function(req, res, next){
+  const newSearch = req.body;
+  try{
+    const results = await createNewSearchEvent(newSearch);
+    return res.json(results);
+  }catch(error){
+    console.log('[/search-result] error', error);
+    return res.json(results)
+  }
+}));
+
+async function createNewSearchEvent(newSearch){
+  const conn = db.conn.promise();
+  let query = ``
+  let resultList = []
+  for(let index in newSearch){
+    query = `INSERT INTO searched_location (boundingbox, class, country, country_code, created_date, display_name, icon_url, importance, lat, lng, 
+      licence, place_id, searched_by, state, user_email, user_id) VALUES (
+        '${newSearch[index]['boundingbox']}', 
+        '${newSearch[index]['class']}',
+        '${newSearch[index]['country']}',
+        '${newSearch[index]['created_date']}',
+        '${newSearch[index]['country_code']}',
+        '${newSearch[index]['display_name']}',
+        '${newSearch[index]['icon_url']}',
+        '${newSearch[index]['importance']}',
+         ${newSearch[index]['lat']},
+         ${newSearch[index]['lng']},
+        '${newSearch[index]['licence']}',
+        ${newSearch[index]['place_id']},
+        '${newSearch[index]['searched_by']}',
+        '${newSearch[index]['state']}',
+        '${newSearch[index]['user_email']}',
+        '${newSearch[index]['user_id']}'
+        )`
+    let result = await conn.query(query, args);
+    console.log(result[0])
+    resultList.push(result[0])
+  }
+  return resultList
+}
+
+/**
+ * @api {get} /new-post Create new pin points 
+ * @apiName Create New Pins
+ * @apiGroup Miscellaneous
+ * @apiVersion 0.0.0
+ * @apiDescription Endpoint to create new pin points
+ * @apiParam {Object} Form data .
+ * @apiSuccessExample Response (example):
+ * HTTP/1.1 200 Success
+{
+  "status": "OK"
+}
+ */
 router.post('/new-post', asyncHandler(async function (req, res, next){
   const newPost = req.body;
   try{
