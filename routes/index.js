@@ -82,6 +82,26 @@ router.post('/search-result', asyncHandler(async function(req, res, next){
     return res.json(results)
   }
 }));
+// road: 'Kuala Lumpur',
+// suburb: 'Burol Main',
+// village: 'Summerwind Village 4',
+// city: 'Dasmarinas',
+// state: 'Cavite',
+// postcode: '4114',
+// country: '菲律宾',
+// country_code: 'ph'
+// fast_food: 'Kuala Lumpur',
+// house_number: '33',
+// road: 'Hauptstraße',
+// residential: 'Lamspringe',
+// suburb: 'Ziegelhütte',
+// village: 'Lamspringe',
+// county: 'Landkreis Hildesheim',
+// state: 'Lower Saxony',
+// postcode: '31195',
+// country: 'Germany',
+// country_code: 'de'
+// neighbourhood: 'KK Subdivision',
 
 async function createNewSearchEvent(newSearch){
   const conn = db.conn.promise();
@@ -90,22 +110,31 @@ async function createNewSearchEvent(newSearch){
   const args = []
   let searched_result = newSearch["searched_result"]
   for(let index in searched_result){
+    console.log(searched_result[index])
     query = `INSERT INTO searched_location (boundingbox, class, country, country_code, created_date, display_name, icon_url, importance, lat, lng, 
-      licence, place_id, searched_by, state, user_email, user_id) VALUES (
+      licence, place_id, searched_by, state, road, suburb, village, city, postcode, fast_food, residential, neighbourhood, user_email, user_id) VALUES (
         '${searched_result[index]['boundingbox']}', 
         '${searched_result[index]['class']}',
-        '${searched_result[index]['country']}',
+        '${searched_result[index]['address']['country']}',
+        '${searched_result[index]['address']['country_code']}',
         '${newSearch['created_date']}',
-        '${searched_result[index]['country_code']}',
         '${searched_result[index]['display_name']}',
-        '${searched_result[index]['icon_url']}',
+        '${searched_result[index]['icon']}',
         '${searched_result[index]['importance']}',
          ${searched_result[index]['lat']},
-         ${searched_result[index]['lng']},
+         ${searched_result[index]['lon']},
         '${searched_result[index]['licence']}',
         ${searched_result[index]['place_id']},
+        '${(searched_result[index]['address']['state'])?searched_result[index]['address']['state']:""}',
+        '${(searched_result[index]['address']['road'])?searched_result[index]['address']['road']:""}',
+        '${(searched_result[index]['address']['suburb'])?searched_result[index]['address']['suburb']:""}',
+        '${(searched_result[index]['address']['village'])?searched_result[index]['address']['village']:""}',
+        '${(searched_result[index]['address']['city'])?searched_result[index]['address']['city']:""}',
+        '${(searched_result[index]['address']['postcode'])?searched_result[index]['address']['postcode']:""}',
+        '${(searched_result[index]['address']['fast_food'])?searched_result[index]['address']['fast_food']:""}',
+        '${(searched_result[index]['address']['residential'])?searched_result[index]['address']['residential']:""}',
+        '${(searched_result[index]['address']['neighbourhood'])?searched_result[index]['address']['neighbourhood']:""}',
         '${(newSearch['searched_by'])? newSearch['searched_by']: ""}',
-        '${searched_result[index]['state']}',
         '${(newSearch['user_email'])? newSearch['user_email']: ""}',
         '${(newSearch['user_id'])? newSearch['user_id']: ""}'
         )`
