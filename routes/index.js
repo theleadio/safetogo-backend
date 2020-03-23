@@ -104,10 +104,10 @@ async function createNewSearchEvent(newSearch){
          ${searched_result[index]['lng']},
         '${searched_result[index]['licence']}',
         ${searched_result[index]['place_id']},
-        '${newSearch['searched_by']}',
+        '${(newSearch['searched_by'])? newSearch['searched_by']: ""}',
         '${searched_result[index]['state']}',
-        '${newSearch['user_email']}',
-        '${newSearch['user_id']}'
+        '${(newSearch['user_email'])? newSearch['user_email']: ""}',
+        '${(newSearch['user_id'])? newSearch['user_id']: ""}'
         )`
     let result = await conn.query(query, args);
     console.log(result[0])
