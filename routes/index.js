@@ -87,6 +87,7 @@ async function createNewSearchEvent(newSearch){
   const conn = db.conn.promise();
   let query = ``
   let resultList = []
+  const args = []
   let searched_result = newSearch["searched_result"]
   for(let index in searched_result){
     query = `INSERT INTO searched_location (boundingbox, class, country, country_code, created_date, display_name, icon_url, importance, lat, lng, 
