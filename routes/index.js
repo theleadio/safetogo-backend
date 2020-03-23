@@ -87,25 +87,26 @@ async function createNewSearchEvent(newSearch){
   const conn = db.conn.promise();
   let query = ``
   let resultList = []
-  for(let index in newSearch){
+  let searched_result = newSearch["searched_result"]
+  for(let index in searched_result){
     query = `INSERT INTO searched_location (boundingbox, class, country, country_code, created_date, display_name, icon_url, importance, lat, lng, 
       licence, place_id, searched_by, state, user_email, user_id) VALUES (
-        '${newSearch[index]['boundingbox']}', 
-        '${newSearch[index]['class']}',
-        '${newSearch[index]['country']}',
-        '${newSearch[index]['created_date']}',
-        '${newSearch[index]['country_code']}',
-        '${newSearch[index]['display_name']}',
-        '${newSearch[index]['icon_url']}',
-        '${newSearch[index]['importance']}',
-         ${newSearch[index]['lat']},
-         ${newSearch[index]['lng']},
-        '${newSearch[index]['licence']}',
-        ${newSearch[index]['place_id']},
-        '${newSearch[index]['searched_by']}',
-        '${newSearch[index]['state']}',
-        '${newSearch[index]['user_email']}',
-        '${newSearch[index]['user_id']}'
+        '${searched_result[index]['boundingbox']}', 
+        '${searched_result[index]['class']}',
+        '${searched_result[index]['country']}',
+        '${newSearch['created_date']}',
+        '${searched_result[index]['country_code']}',
+        '${searched_result[index]['display_name']}',
+        '${searched_result[index]['icon_url']}',
+        '${searched_result[index]['importance']}',
+         ${searched_result[index]['lat']},
+         ${searched_result[index]['lng']},
+        '${searched_result[index]['licence']}',
+        ${searched_result[index]['place_id']},
+        '${newSearch['searched_by']}',
+        '${searched_result[index]['state']}',
+        '${newSearch['user_email']}',
+        '${newSearch['user_id']}'
         )`
     let result = await conn.query(query, args);
     console.log(result[0])
