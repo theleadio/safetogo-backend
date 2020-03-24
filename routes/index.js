@@ -3,6 +3,24 @@ var router = express.Router();
 const asyncHandler = require("express-async-handler");
 const db = require('../database');
 
+function getUTCDate() {
+  let d = new Date()
+  let month = '' + (d.getUTCMonth() + 1);
+  let day = '' + d.getUTCDate();
+  let year = d.getUTCFullYear();
+  let hour = ''+ d.getUTCHours();
+  let min = '' + d.getUTCMinutes();
+  let seconds = '' + d.getUTCSeconds();
+
+
+  if (month.length < 2){month = '0' + month};
+  if (day.length < 2){day = '0' + day};
+  if (hour.length < 2){hour = '0' + hour};
+  if (min.length < 2){min = '0' + min};
+  if (seconds.length < 2){seconds = '0' + seconds};
+
+  return [year, month, day].join('-') + ' ' + [hour, min, seconds].join(':');
+}
 
 /* GET home page. */
 router.get('/', function(req, res, next) {
@@ -56,7 +74,7 @@ async function getNearbyLocation(latlng) {
   let query = '';
   const args = [];
 
-  query = `SELECT text_show as title, source, reportedDate as createdAt, lat, lng, locationName 
+  query = `SELECT text_show as title, source, reportedDate as createdAt, lat, lng, locationName, upvote, downvote
            FROM redangpow_markers ;
         `;
   
@@ -66,11 +84,151 @@ async function getNearbyLocation(latlng) {
     // args.push(`%${country}%`);
   
   let result = await conn.query(query, args);
-  console.log(result[0]);
   return result[0];
   // return result[0] && result[0][0] || { country, num_confirm: '?', num_dead: '?', num_heal: '?', created: null };
 }
 // search-result
+router.post('/signin',async function(req, res, next){
+  const user = req.body;
+  try{
+    let result = await checkUserExist(user);
+    if(result.length > 0){
+      let votes = await getUserVotes(user);
+      result = {
+        user_id: result[0]["user_id"],
+        votes: votes
+      }
+      let _ = loginUser(user);
+      _ = updateUser(user);
+
+    }else{
+      result = await createNewUser(user);
+    }
+    return res.json(result);
+  }catch(error){
+    console.log('[/signin] error', error);
+    return res.json(results)
+  }
+});
+
+async function getUserVotes(user){
+  const conn = db.conn.promise();
+  let query = ''
+  const args = []
+  query = `SELECT lat, lng, upvote, downvote FROM votes WHERE email='${user["email"]}'`
+  let result = await conn.query(query, args);
+  return result[0]
+}
+
+async function checkUserExist(user){
+  const conn = db.conn.promise();
+  let query = ''
+  const args = []
+  query = `SELECT user_id FROM safetogo_user WHERE email='${user["email"]}'`
+  console.log(query)
+  let result = await conn.query(query, args);
+  return result[0]
+}
+
+async function createNewUser(user){
+  const conn = db.conn.promise();
+  let query = ''
+  let current_date = getUTCDate();
+  query = `INSERT INTO safetogo_user (created_date, email, img_url, last_login, login_count, logout_date, name, post_count) VALUES 
+  ('${current_date}','${user["email"]}','${user["img_url"]}','${current_date}',0,'','${user["name"]}',0)`
+  let result = await conn.query(query, []);
+  return result[0]
+}
+
+async function loginUser(user){
+  const conn = db.conn.promise();
+  let query = ''
+  let current_date = getUTCDate();
+  query = `UPDATE safetogo_user SET last_login='${current_date}', login_count = login_count + 1, last_updated ='${current_date}' WHERE email='${user["email"]}'`
+  let result = await conn.query(query, []);
+  return result[0]
+}
+
+async function updateUser(user){
+  const conn = db.conn.promise();
+  let query = ''
+  let current_date = getUTCDate();
+  query =`UPDATE 
+            safetogo_user 
+          SET post_count = (
+            SELECT 
+              COUNT(DISTINCT id)
+            FROM
+              votes
+            WHERE
+              email = '${user["email"]}'
+          ), last_updated ='${current_date}' 
+          WHERE email='${user["email"]}'`
+  let result = await conn.query(query, []);
+  return result[0]
+}
+
+
+router.post('/signout',async function(req, res, next){
+  const user = req.body;
+  try{
+    const result = await logoutUser(user);
+    return res.json(result);
+  }catch(error){
+    console.log('[/signin] error', error);
+    return res.json(results)
+  }
+});
+
+async function logoutUser(user){
+  // user_id only
+  const conn = db.conn.promise();
+  let query = ''
+  let current_date = getUTCDate();
+  query = `UPDATE safetogo_user SET logout_date='${current_date}', last_updated ='${current_date}' WHERE user_id='${user["user_id"]}'`
+  let result = await conn.query(query, []);
+  return result[0]
+}
+
+router.post('/vote',async function(req, res, next){
+  const vote = req.body;
+  try{
+    let result = await insertVote(vote);
+    let _ = updateMarker(vote)
+    return res.json([result]);
+  }catch(error){
+    console.log('[/vote] error', error);
+    return res.json(results)
+  }
+});
+
+async function insertVote(vote){
+  const conn = db.conn.promise();
+  let query = ''
+  let current_date = getUTCDate();
+  query = `INSERT INTO votes (downvote, email, lat, lng, upvote, user_id, vote_date) VALUES 
+  (${vote["downvotes"]}, '${vote["email"]}', ${vote["lat"]}, ${vote["lng"]}, ${vote["upvotes"]}, '${vote["user_id"]}', '${current_date}')`
+  let result = await conn.query(query, []);
+  return result[0]
+}
+
+async function updateMarker(vote){
+  const conn = db.conn.promise();
+  let query = ''
+  let current_date = getUTCDate();
+  query = `
+  UPDATE 
+    redangpow_markers
+  SET 
+    upvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND upvote = 1),
+    downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND downvote = 1),
+    last_updated = '${current_date}'
+  WHERE
+    lat= ${vote["lat"]} AND lng = ${vote["lng"]} 
+  `
+  let result = await conn.query(query, []);
+  return result[0]
+}
 
 router.post('/search-result', asyncHandler(async function(req, res, next){
   const newSearch = req.body;
@@ -82,26 +240,6 @@ router.post('/search-result', asyncHandler(async function(req, res, next){
     return res.json(results)
   }
 }));
-// road: 'Kuala Lumpur',
-// suburb: 'Burol Main',
-// village: 'Summerwind Village 4',
-// city: 'Dasmarinas',
-// state: 'Cavite',
-// postcode: '4114',
-// country: '菲律宾',
-// country_code: 'ph'
-// fast_food: 'Kuala Lumpur',
-// house_number: '33',
-// road: 'Hauptstraße',
-// residential: 'Lamspringe',
-// suburb: 'Ziegelhütte',
-// village: 'Lamspringe',
-// county: 'Landkreis Hildesheim',
-// state: 'Lower Saxony',
-// postcode: '31195',
-// country: 'Germany',
-// country_code: 'de'
-// neighbourhood: 'KK Subdivision',
 
 async function createNewSearchEvent(newSearch){
   const conn = db.conn.promise();
@@ -139,7 +277,6 @@ async function createNewSearchEvent(newSearch){
         '${(newSearch['user_id'])? newSearch['user_id']: ""}'
         )`
     let result = await conn.query(query, args);
-    console.log(result[0])
     resultList.push(result[0])
   }
   return resultList
@@ -161,7 +298,6 @@ async function createNewSearchEvent(newSearch){
 router.post('/new-post', asyncHandler(async function (req, res, next){
   const newPost = req.body;
   try{
-    console.log(req.body)
     const results = await insertNews(newPost);
     return res.json(results)
   }
@@ -178,9 +314,7 @@ async function insertNews(newPost){
   query = `INSERT INTO safetogo_markers (title, content, source, createdBy, email, img_url, locationName, lat, lng, reportedDate) VALUES 
   ('${newPost["title"]}', '${newPost["content"]}', '${newPost["source"]}', '${newPost["createdBy"]}',
   '${newPost["email"]}', '${newPost["img_url"]}', '${newPost["locationName"]}', ${newPost["lat"]}, ${newPost["lng"]}, '${newPost["reportedDate"]}')`
-  console.log(query)
   let result = await conn.query(query, args);
-  console.log(result[0])
   return result[0]
 }
 
