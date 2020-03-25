@@ -75,9 +75,9 @@ async function getNearbyLocation(latlng) {
   const args = [];
 
   query = `
-    SELECT text_show as title, source, reportedDate as createdAt, lat, lng, locationName, upvote, downvote, createdBy, img_url FROM redangpow_markers 
+    SELECT text_show as title, source, DATE_FORMAT(CONVERT_TZ(reportedDate,'UTC','Asia/Kuala_Lumpur'), '%b %d, %Y %h:%i %p' ) as createdAt, lat, lng, locationName, upvote, downvote, createdBy, img_url FROM redangpow_markers 
       UNION
-    SELECT title, source, reportedDate AS createdAt, lat, lng, locationName, upvote, downvote, createdBy, img_url FROM safetogo_markers;
+    SELECT title, source, DATE_FORMAT(CONVERT_TZ(reportedDate,'UTC','Asia/Kuala_Lumpur'), '%b %d, %Y %h:%i %p' ) AS createdAt, lat, lng, locationName, upvote, downvote, createdBy, img_url FROM safetogo_markers;
         `;
   
 
