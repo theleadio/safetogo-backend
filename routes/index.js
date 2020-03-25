@@ -74,8 +74,10 @@ async function getNearbyLocation(latlng) {
   let query = '';
   const args = [];
 
-  query = `SELECT text_show as title, source, reportedDate as createdAt, lat, lng, locationName, upvote, downvote
-           FROM redangpow_markers ;
+  query = `
+    SELECT text_show as title, source, reportedDate as createdAt, lat, lng, locationName, upvote, downvote, createdBy, img_url FROM redangpow_markers 
+      UNION
+    SELECT title, source, reportedDate AS createdAt, lat, lng, locationName, upvote, downvote, createdBy, img_url FROM safetogo_markers;
         `;
   
 
@@ -159,7 +161,7 @@ async function updateUser(user){
             SELECT 
               COUNT(DISTINCT id)
             FROM
-              votes
+              safetogo_markers
             WHERE
               email = '${user["email"]}'
           ), last_updated ='${current_date}' 
@@ -216,18 +218,23 @@ async function updateMarker(vote){
   const conn = db.conn.promise();
   let query = ''
   let current_date = getUTCDate();
-  query = `
-  UPDATE 
-    redangpow_markers
-  SET 
-    upvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND upvote = 1),
-    downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND downvote = 1),
-    last_updated = '${current_date}'
-  WHERE
-    lat= ${vote["lat"]} AND lng = ${vote["lng"]} 
-  `
-  let result = await conn.query(query, []);
-  return result[0]
+  let result = []
+  let markerTables = ["redangpow_markers", "safetogo_markers"]
+  for(let index in markerTables){
+    query = `
+    UPDATE 
+      ${markerTables[index]}
+    SET 
+      upvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND upvote = 1),
+      downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND downvote = 1),
+      last_updated = '${current_date}'
+    WHERE
+      lat= ${vote["lat"]} AND lng = ${vote["lng"]} 
+    `
+    let rlt = await conn.query(query, []);
+    result.push(rlt);
+  }
+  return result
 }
 
 router.post('/search-result', asyncHandler(async function(req, res, next){
