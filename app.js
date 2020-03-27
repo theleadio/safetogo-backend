@@ -29,7 +29,7 @@ app.use(bodyParser.urlencoded({
 }));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/user', usersRouter);
 app.use('/map', mapRouter);
 app.use('/search', searchRouter);
 
