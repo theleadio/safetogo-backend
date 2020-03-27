@@ -9,6 +9,8 @@ var logger = require('morgan');
 
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
+var mapRouter = require('./routes/map');
+var searchRouter = require('./routes/search');
 
 var app = express();
 app.use(cors());
@@ -28,6 +30,8 @@ app.use(bodyParser.urlencoded({
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/map', mapRouter);
+app.use('/search', searchRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
