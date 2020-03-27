@@ -41,7 +41,6 @@ async function checkUserExist(user){
   let query = ''
   const args = []
   query = `SELECT user_id FROM safetogo_user WHERE email='${user["email"]}'`
-  console.log(query)
   let result = await conn.query(query, args);
   return result[0]
 }
