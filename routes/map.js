@@ -50,8 +50,40 @@ router.get('/nearby-location', asyncHandler(async function (req, res, next) {
     return result[0];
     // return result[0] && result[0][0] || { country, num_confirm: '?', num_dead: '?', num_heal: '?', created: null };
   }
-  // search-result
-  // 
+
+  router.get('/summary', asyncHandler(async function(req, res, next){
+    const { country } = req.query;
+    try {
+      const results = await getSummary();
+      return res.json(results);
+    }
+    catch (error) {
+      console.log('[/nearby-location] error', error);
+      return res.json(error);
+    }
+  }));
+
+  async function getSummary(){
+    const conn = db.conn.promise();
+    let query = '';
+    query =`
+    SELECT
+      locationName,
+      text_show as title,
+      source,
+      DATE_FORMAT(CONVERT_TZ(reportedDate,'UTC','Asia/Kuala_Lumpur'), '%b %d, %Y %h:%i %p' ) as createdAt,
+      lat,
+      lng,
+      createdBy,
+      img_url,
+      upvote,
+      downvote
+  FROM
+      safetogo.borneo_markers
+    `;
+    let result = await conn.query(query, []);
+    return result[0]
+  }
   
   router.post('/vote',async function(req, res, next){
     const vote = req.body;
@@ -77,10 +109,15 @@ router.get('/nearby-location', asyncHandler(async function (req, res, next) {
   
   async function updateMarker(vote){
     const conn = db.conn.promise();
-    let query = ''
+    let query = '';
     let current_date = utils.getUTCDate();
-    let result = []
-    let markerTables = ["redangpow_markers", "safetogo_markers"]
+    let result = [];
+    let markerTables = [];
+    if(vote["reference"] === "location"){
+      markerTables = ["redangpow_markers", "safetogo_markers"]
+    }else{
+      markerTables = ["borneo_markers"]
+    }
     for(let index in markerTables){
       query = `
       UPDATE 
