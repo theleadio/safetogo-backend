@@ -11,7 +11,6 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var mapRouter = require('./routes/map');
 var searchRouter = require('./routes/search');
-var scrapRouter = require('./routes/scrap/borneo.js');
 
 var app = express();
 app.use(cors());
@@ -33,7 +32,6 @@ app.use('/', indexRouter);
 app.use('/user', usersRouter);
 app.use('/map', mapRouter);
 app.use('/search', searchRouter);
-app.use('/scrap', scrapRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

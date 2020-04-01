@@ -80,7 +80,7 @@ async function getSummary(){
     upvote,
     downvote
   FROM
-    safetogo.borneo_markers
+    safetogo.summary_markers
   `;
   let result = await conn.query(query, []);
   return result[0]
