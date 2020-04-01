@@ -219,7 +219,7 @@ async function searchGooglePlace(keyword){
     let place = result["candidates"][0];
     const conn = db.conn.promise();
     let query = `
-      INSERT INTO safetogo_dev.google_map_place (
+      INSERT INTO google_map_place (
         compound_code, 
         created_date, 
         formatted_address, 
