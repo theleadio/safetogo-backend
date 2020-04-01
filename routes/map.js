@@ -81,6 +81,20 @@ async function getSummary(){
     downvote
   FROM
     safetogo.summary_markers
+UNION
+    SELECT
+    locationName,
+    text_show as title,
+    source,
+    DATE_FORMAT(CONVERT_TZ(reportedDate,'UTC','Asia/Kuala_Lumpur'), '%b %d, %Y %h:%i %p' ) as createdAt,
+    lat,
+    lng,
+    createdBy,
+    img_url,
+    upvote,
+    downvote
+  FROM
+    safetogo.manual_summary_markers
   `;
   let result = await conn.query(query, []);
   return result[0]
@@ -111,7 +125,7 @@ async function insertVote(vote){
 async function updateMarker(vote){
   const conn = db.conn.promise();
   let query = '';
-  let current_date = utils.getUTCDate();
+  // let current_date = utils.getUTCDate();
   let result = [];
   let markerTables = [];
   if(vote["reference"] === "location"){
@@ -125,8 +139,7 @@ async function updateMarker(vote){
       ${markerTables[index]}
     SET 
       upvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND upvote = 1),
-      downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND downvote = 1),
-      last_updated = '${current_date}'
+      downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE lat= ${vote["lat"]} AND lng = ${vote["lng"]} AND downvote = 1)
     WHERE
       lat= ${vote["lat"]} AND lng = ${vote["lng"]} 
     `
