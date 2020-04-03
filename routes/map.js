@@ -81,6 +81,7 @@ async function getSummary(){
     downvote
   FROM
     safetogo.summary_markers
+  WHERE total_confirmed > 0
 UNION
     SELECT
     locationName,
@@ -95,6 +96,7 @@ UNION
     downvote
   FROM
     safetogo.manual_summary_markers
+    WHERE total_confirmed > 0
   `;
   let result = await conn.query(query, []);
   return result[0]
@@ -129,9 +131,9 @@ async function updateMarker(vote){
   let result = [];
   let markerTables = [];
   if(vote["reference"] === "location"){
-    markerTables = ["redangpow_markers", "safetogo_markers"]
+    markerTables = ["safetogo.redangpow_markers", "safetogo.safetogo_markers"]
   }else{
-    markerTables = ["summary_markers"]
+    markerTables = ["safetogo.summary_markers", "safetogo.manual_summary_markers"]
   }
   for(let index in markerTables){
     query = `
