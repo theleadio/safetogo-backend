@@ -200,7 +200,7 @@ router.get('/suggest', asyncHandler(async function(req, res, next){
 
 async function suggestPlace(keyword){
   const conn = db.conn.promise();
-  let query=`SELECT name, geometry_lat as lat, geometry_lng as lng, id FROM google_map_place WHERE name LIKE "%${keyword}%"`
+  let query=`SELECT DISTINCT name, geometry_lat as lat, geometry_lng as lng, id FROM google_map_place WHERE name LIKE "%${keyword}%"`
   let result = await conn.query(query, []);
   return result[0];
 }
@@ -222,7 +222,7 @@ router.get('/search', asyncHandler(async function(req, res, next){
 
 async function searchPlace(keyword){
   const conn = db.conn.promise();
-  let query=`SELECT name, geometry_lat as lat, geometry_lng as lng, id FROM google_map_place WHERE name = "%${keyword}"`
+  let query=`SELECT DISTINCT name, geometry_lat as lat, geometry_lng as lng, id FROM google_map_place WHERE name = "%${keyword}"`
   let result = await conn.query(query, []);
   return result[0];
 }
