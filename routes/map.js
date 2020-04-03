@@ -59,7 +59,7 @@ router.get('/summary', asyncHandler(async function(req, res, next){
     return res.json(results);
   }
   catch (error) {
-    console.log('[/nearby-location] error', error);
+    console.log('[/summary] error', error);
     return res.json(error);
   }
 }));

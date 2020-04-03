@@ -11,6 +11,7 @@ var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var mapRouter = require('./routes/map');
 var searchRouter = require('./routes/search');
+var mapRouterV2 = require('./routes/v2/map');
 
 var app = express();
 app.use(cors());
@@ -31,6 +32,7 @@ app.use(bodyParser.urlencoded({
 app.use('/', indexRouter);
 app.use('/user', usersRouter);
 app.use('/map', mapRouter);
+app.use('/map/v2', mapRouterV2);
 app.use('/search', searchRouter);
 
 // catch 404 and forward to error handler
