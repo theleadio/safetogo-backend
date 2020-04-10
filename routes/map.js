@@ -227,59 +227,70 @@ async function searchPlace(keyword){
   return result[0];
 }
 
+
 async function searchGooglePlace(keyword){
   const result = await gMap.searchPlace(keyword);
-  if(result["candidates"].length > 0){
-    let current_date = utils.getUTCDate();
-    let place = result["candidates"][0];
-    const conn = db.conn.promise();
-    let query = `
-      INSERT INTO google_map_place (
-        compound_code, 
-        created_date, 
-        formatted_address, 
-        geometry_lat, 
-        geometry_lng, 
-        global_code,
-        icon, 
-        name,
-        place_id,
-        rating,
-        search_count,
-        types,
-        viewport_northeast_lat,
-        viewport_northeast_lng,
-        viewport_southwest_lat,
-        viewport_southwest_lng
-      )
-      VALUES (
-        '${("plus_code" in place) ? ("compound_code" in place["plus_code"]) ? place["plus_code"]["compound_code"]: '' : ''}',
-        '${current_date}', 
-        '${("formatted_address" in place ? place["formatted_address"]: '')}', 
-        ${place["geometry"]["location"]["lat"]}, 
-        ${place["geometry"]["location"]["lng"]}, 
-        '${("plus_code" in place) ? ("global_code" in place["plus_code"]) ? place["plus_code"]["global_code"]: '' : ''}',
-        '${"icon" in place ? place["icon"]: ''}', 
-        '${place["name"]}',
-        '${"place_id" in place ? place["place_id"]: ''}',
-        ${"rating" in place ? place["rating"]: 0},
-        0,
-        '${"types" in place ? place["types"].toString() :''}',
-        ${"viewport" in place["geometry"] ? ("northeast" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["northeast"]["lat"]:null):null},
-        ${"viewport" in place["geometry"] ? ("northeast" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["northeast"]["lng"]:null):null},
-        ${"viewport" in place["geometry"] ? ("southwest" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["southwest"]["lat"]:null):null},
-        ${"viewport" in place["geometry"] ? ("southwest" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["southwest"]["lng"]:null):null}
-      )
-    `
-    let placeResult = {
-      name: place["name"],
-      lat: place["geometry"]["location"]["lat"],
-      lng: place["geometry"]["location"]["lng"]
+  try{
+    if(result["candidates"].length > 0){
+      let current_date = utils.getUTCDate();
+      let place = result["candidates"][0];
+      const conn = db.conn.promise();
+      let query = ``
+      query =`SELECT place_id FROM google_map_place WHERE place_id = '${place["place_id"]}'`
+      let dbResult = await conn.query(query, []);
+      if(dbResult[0].length === 0){
+        query=`
+          INSERT INTO google_map_place (
+            compound_code, 
+            created_date, 
+            formatted_address, 
+            geometry_lat, 
+            geometry_lng, 
+            global_code,
+            icon, 
+            name,
+            place_id,
+            rating,
+            search_count,
+            types,
+            viewport_northeast_lat,
+            viewport_northeast_lng,
+            viewport_southwest_lat,
+            viewport_southwest_lng
+          )
+          VALUES (
+            '${("plus_code" in place) ? ("compound_code" in place["plus_code"]) ? place["plus_code"]["compound_code"]: '' : ''}',
+            '${current_date}', 
+            '${("formatted_address" in place ? place["formatted_address"]: '')}', 
+            ${place["geometry"]["location"]["lat"]}, 
+            ${place["geometry"]["location"]["lng"]}, 
+            '${("plus_code" in place) ? ("global_code" in place["plus_code"]) ? place["plus_code"]["global_code"]: '' : ''}',
+            '${"icon" in place ? place["icon"]: ''}', 
+            '${place["name"]}',
+            '${"place_id" in place ? place["place_id"]: ''}',
+            ${"rating" in place ? place["rating"]: 0},
+            0,
+            '${"types" in place ? place["types"].toString() :''}',
+            ${"viewport" in place["geometry"] ? ("northeast" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["northeast"]["lat"]:null):null},
+            ${"viewport" in place["geometry"] ? ("northeast" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["northeast"]["lng"]:null):null},
+            ${"viewport" in place["geometry"] ? ("southwest" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["southwest"]["lat"]:null):null},
+            ${"viewport" in place["geometry"] ? ("southwest" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["southwest"]["lng"]:null):null}
+          )
+        `
+        dbResult = conn.query(query, []);
+      }
+      let placeSearch = {
+        name: place["name"],
+        lat: place["geometry"]["location"]["lat"],
+        lng: place["geometry"]["location"]["lng"]
+      }
+      return placeSearch
     }
-    let dbResult = conn.query(query, []);
-    return placeResult;
+    return {}
+  }catch (error){
+    console.log('[/searchGooglePlace] error',error);
+    return res.json(error);
   }
-  return {}
 }
 
 module.exports = router;
