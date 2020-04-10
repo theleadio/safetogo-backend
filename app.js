@@ -12,6 +12,7 @@ var usersRouter = require('./routes/users');
 var mapRouter = require('./routes/map');
 var searchRouter = require('./routes/search');
 var mapRouterV2 = require('./routes/v2/map');
+var userRouterV2 = require('./routes/v2/user');
 
 var app = express();
 app.use(cors());
@@ -31,6 +32,7 @@ app.use(bodyParser.urlencoded({
 
 app.use('/', indexRouter);
 app.use('/user', usersRouter);
+app.use('/user/v2',userRouterV2);
 app.use('/map', mapRouter);
 app.use('/map/v2', mapRouterV2);
 app.use('/search', searchRouter);

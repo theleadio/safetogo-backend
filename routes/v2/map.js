@@ -58,7 +58,7 @@ async function getCasesByCountry(country){
       locationName,
       description as content
     FROM
-      ${DB_NAME}.redangpow_markers
+      ${DB_NAME}.redangpow_markers2
     WHERE
       country = "${country}"
   `;
@@ -70,7 +70,7 @@ router.post('/vote',async function(req, res, next){
   const vote = req.body;
   try{
     let result = await insertVote(vote);
-    let _ = updateMarker(vote)
+    vote["reference"] === "summary"? updateSummary(vote):updateCaseMarker(vote);
     return res.json([result]);
   }catch(error){
     console.log('[/vote] error', error);
@@ -91,17 +91,17 @@ async function insertVote(vote){
 async function updateSummary(vote){
   const conn = db.conn.promise();
   let result = [];
-  let markerTables = [`${DB_NAME}.summary_markers`, `${DB_NAME}.district_summary_markers`];
+  let markerTables = [`${DB_NAME}.district_summary_markers`];
   for(let index in markerTables){
     query = `
     UPDATE 
       ${markerTables[index]}
     SET 
-      upvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND upvote = 1),
-      downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND downvote = 1)
+      upvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND upvote = 1),
+      downvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND downvote = 1)
     WHERE
-      district= ${vote["district"]} AND country = ${vote["country"]}
-    `
+      district= '${vote["district"]}' AND country = '${vote["country"]}'
+    `;
     let rlt = await conn.query(query, []);
     result.push(rlt);
   }
@@ -119,15 +119,25 @@ async function updateCaseMarker(vote){
     UPDATE 
       ${markerTables[index]}
     SET 
-      upvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND upvote = 1),
-      downvote = (SELECT COUNT(DISTINCT user_id) FROM votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND downvote = 1)
+      upvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' AND upvote = 1),
+      downvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' AND downvote = 1)
     WHERE
-      lat= ${vote["lat"]} AND lng = ${vote["lng"]} 
+      case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' 
     `
+    console.log(query);
     let rlt = await conn.query(query, []);
     result.push(rlt);
   }
   return result
 }
+
+router.get('/votes/update', async function(req,res,next){
+  let result = {};
+  try{
+    return res.json([result]);
+  }catch(error){
+    return res.json(results)
+  }
+});
 
 module.exports = router;
