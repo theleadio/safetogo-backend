@@ -48,22 +48,40 @@ router.get('/cases', asyncHandler(async function(req, res, next){
 async function getCasesByCountry(country){
   const conn = db.conn.promise();
   let query = `
-    SELECT
-      id,
-      country,
-      district,
-      lat,
-      lng,
-      upvote,
-      downvote,
-      createdBy,
-      img_url,
-      locationName,
-      description as content
-    FROM
-      safetogo.redangpow_markers
-    WHERE
-      country = '${country}'
+  SELECT
+    id,
+    country,
+    district,
+    lat,
+    lng,
+    upvote,
+    downvote,
+    createdBy,
+    img_url,
+    locationName,
+    description as content
+  FROM
+    safetogo.redangpow_markers
+  WHERE
+    country = '${country}'
+  UNION
+  SELECT
+    id,
+    country,
+    district,
+    lat,
+    lng,
+    upvote,
+    downvote,
+    createdBy,
+    img_url,
+    locationName,
+    content
+  FROM
+    safetogo.safetogo_markers
+  WHERE
+    country = '${country}'
+
   `;
   let result = await conn.query(query, []);
   return result[0]
