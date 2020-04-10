@@ -4,7 +4,7 @@ var utils = require('../../utils/utils');
 var gMap = require('../../services/googleMap');
 const asyncHandler = require("express-async-handler");
 const db = require('../../database');
-const DB_NAME = "safetogo_dev"
+const DB_NAME = "safetogo"
 
 router.get('/summary', asyncHandler(async function(req, res, next){
   const country = req.query.country;
@@ -61,7 +61,7 @@ async function getCasesByCountry(country){
       locationName,
       description as content
     FROM
-      safetogo.redangpow_markers2
+      safetogo.redangpow_markers
     WHERE
       country = '${country}'
   `;
@@ -116,7 +116,7 @@ async function updateCaseMarker(vote){
   let query = '';
   // let current_date = utils.getUTCDate();
   let result = [];
-  let markerTables = [`${DB_NAME}.redangpow_markers2`, `${DB_NAME}.safetogo_markers`]
+  let markerTables = [`${DB_NAME}.redangpow_markers`, `${DB_NAME}.safetogo_markers`]
   for(let index in markerTables){
     query = `
     UPDATE 

@@ -4,7 +4,7 @@ var utils = require('../../utils/utils');
 var gMap = require('../../services/googleMap');
 const asyncHandler = require("express-async-handler");
 const db = require('../../database');
-const DB_NAME = "safetogo_dev"
+const DB_NAME = "safetogo"
 
 router.post('/signin',async function(req, res, next){
     const user = req.body;
