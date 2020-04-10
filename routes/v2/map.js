@@ -135,13 +135,53 @@ async function updateCaseMarker(vote){
 }
 
 router.get('/votes/update', async function(req,res,next){
-  let result = {};
   try{
+    let summaryVotes = await getSummaryVote();
+    console.log(summaryVotes)
+    let result = await updateSummary(summaryVotes)
     return res.json([result]);
   }catch(error){
     return res.json(results)
   }
 });
+
+async function getSummaryVote(){
+  const conn = db.conn.promise();
+  let query =``;
+  query = `
+    SELECT
+      district,
+      country,
+      COUNT(DISTINCT CASE WHEN upvote = 1 THEN user_id ELSE NULL END) as upvote,
+      COUNT(DISTINCT CASE WHEN downvote = 1 THEN user_id ELSE NULL END) as downvote
+    FROM
+      ${DB_NAME}.votes
+    WHERE 
+      reference = 'summary'
+  `
+  let result = await conn.query(query, [])
+  return result[0]
+}
+
+async function updateSummary(votes){
+  const conn = db.conn.promise();
+  let query=``;
+  for (let i in votes){
+    query =
+    `
+      UPDATE
+        ${DB_NAME}.district_summary_markers
+      SET
+        upvote = ${votes[i]["upvote"]},
+        downvote = ${votes[i]["downvote"]}
+      WHERE
+        district = '${votes[i]["district"]}' AND country = '${votes[i]["country"]}'
+    `
+    console.log(query)
+    let result = await conn.query(query, [])
+    return result[0]
+  }
+}
 
 
 module.exports = router;
