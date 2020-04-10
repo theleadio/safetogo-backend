@@ -7,8 +7,9 @@ const db = require('../../database');
 const DB_NAME = "safetogo_dev"
 
 router.get('/summary', asyncHandler(async function(req, res, next){
+  const country = req.query.country;
     try {
-      const results = await getSummary();
+      const results = await getSummary(country);
       return res.json(results);
     }
     catch (error) {
@@ -25,6 +26,8 @@ async function getSummary(country, district){
       *
   FROM
       ${DB_NAME}.district_summary_markers
+  WHERE
+    country = '${country}'
   `;
   let result = await conn.query(query, []);
   return result[0]
@@ -58,9 +61,9 @@ async function getCasesByCountry(country){
       locationName,
       description as content
     FROM
-      ${DB_NAME}.redangpow_markers2
+      safetogo.redangpow_markers2
     WHERE
-      country = "${country}"
+      country = '${country}'
   `;
   let result = await conn.query(query, []);
   return result[0]
@@ -139,5 +142,6 @@ router.get('/votes/update', async function(req,res,next){
     return res.json(results)
   }
 });
+
 
 module.exports = router;
