@@ -225,4 +225,118 @@ async function updateRedangpow(votes){
 }
 
 
+router.get('/suggest', asyncHandler(async function(req, res, next){
+  try{
+    const place = req.query.place_name;
+    const result = await suggestPlace(place);
+    return res.json(result);
+  }catch(error){
+    console.log('[/suggest] error', error);
+    return res.json(error);
+  }
+}));
+
+async function suggestPlace(keyword){
+  const conn = db.conn.promise();
+  let query=`SELECT DISTINCT name, geometry_lat as lat, geometry_lng as lng, formatted_address, country, state FROM ${DB_NAME}.google_map_place WHERE name LIKE "%${keyword}%"`
+  let result = await conn.query(query, []);
+  return result[0];
+}
+
+router.get('/search', asyncHandler(async function(req, res, next){
+  try{
+    const place = req.query.place_name;
+    let result = await searchPlace(place);
+
+    if(result.length === 0){
+      result = await searchGooglePlace(place);
+    }
+    return res.json(result);
+  }catch(error){
+    console.log('[/search] error',error);
+    return res.json(error);
+  }
+}));
+
+async function searchPlace(keyword){
+  const conn = db.conn.promise();
+  let query=`SELECT DISTINCT name, geometry_lat as lat, geometry_lng as lng, formatted_address, country, state FROM ${DB_NAME}.google_map_place WHERE name = "%${keyword}"`
+  let result = await conn.query(query, []);
+  return result[0];
+}
+
+
+async function searchGooglePlace(keyword){
+  const result = await gMap.searchPlace(keyword);
+  try{
+    if(result["candidates"].length > 0){
+      let current_date = utils.getUTCDate();
+      let place = result["candidates"][0];
+      let address = ("formatted_address" in place ? place["formatted_address"]: '').split(",");
+      const conn = db.conn.promise();
+      let query = ``
+      query =`SELECT place_id FROM ${DB_NAME}.google_map_place WHERE place_id = '${place["place_id"]}'`
+      let dbResult = await conn.query(query, []);
+      if(dbResult[0].length === 0){
+        query=`
+          INSERT INTO ${DB_NAME}.google_map_place (
+            compound_code, 
+            created_date, 
+            formatted_address, 
+            geometry_lat, 
+            geometry_lng, 
+            global_code,
+            icon, 
+            name,
+            place_id,
+            rating,
+            search_count,
+            types,
+            viewport_northeast_lat,
+            viewport_northeast_lng,
+            viewport_southwest_lat,
+            viewport_southwest_lng, 
+            country,
+            state
+          )
+          VALUES (
+            '${("plus_code" in place) ? ("compound_code" in place["plus_code"]) ? place["plus_code"]["compound_code"]: '' : ''}',
+            '${current_date}', 
+            '${("formatted_address" in place ? place["formatted_address"]: '')}', 
+            ${place["geometry"]["location"]["lat"]}, 
+            ${place["geometry"]["location"]["lng"]}, 
+            '${("plus_code" in place) ? ("global_code" in place["plus_code"]) ? place["plus_code"]["global_code"]: '' : ''}',
+            '${"icon" in place ? place["icon"]: ''}', 
+            '${place["name"]}',
+            '${"place_id" in place ? place["place_id"]: ''}',
+            ${"rating" in place ? place["rating"]: 0},
+            0,
+            '${"types" in place ? place["types"].toString() :''}',
+            ${"viewport" in place["geometry"] ? ("northeast" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["northeast"]["lat"]:null):null},
+            ${"viewport" in place["geometry"] ? ("northeast" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["northeast"]["lng"]:null):null},
+            ${"viewport" in place["geometry"] ? ("southwest" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["southwest"]["lat"]:null):null},
+            ${"viewport" in place["geometry"] ? ("southwest" in place["geometry"]["viewport"]? place["geometry"]["viewport"]["southwest"]["lng"]:null):null},
+            '${address.length > 1 ? address[address.length - 1].trim(): ""}',
+            '${address.length > 1 ? address[address.length - 2].trim(): ""}'
+          )
+        `
+        dbResult = conn.query(query, []);
+      }
+      
+      let placeSearch = {
+        name: place["name"],
+        lat: place["geometry"]["location"]["lat"],
+        lng: place["geometry"]["location"]["lng"],
+        country: address.length > 1 ? address[address.length - 1].trim(): place["place_id"],
+        state: address.length > 1 ? address[address.length - 2].trim(): place["place_id"],
+      }
+      return placeSearch
+    }
+    return {}
+  }catch (error){
+    console.log('[/searchGooglePlace] error',error);
+    return res.json(error);
+  }
+}
+
 module.exports = router;
