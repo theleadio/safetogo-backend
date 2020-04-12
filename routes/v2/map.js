@@ -87,6 +87,29 @@ async function getCasesByCountry(country){
   return result[0]
 }
 
+router.post('/new-post', asyncHandler(async function (req, res, next){
+  const newPost = req.body;
+  try{
+    const results = await insertNews(newPost);
+    return res.json(results)
+  }
+  catch(error){
+    console.log('[/new-post] error', error);
+    return res.json(error);
+  }
+}));
+
+async function insertNews(newPost){
+  const conn = db.conn.promise();
+  let query = ''
+  const args = []
+  query = `INSERT INTO ${DB_NAME}.safetogo_markers (title, content, source, createdBy, email, img_url, locationName, lat, lng, reportedDate, country, district) VALUES 
+  ('${newPost["title"]}', '${newPost["content"]}', '${newPost["source"]}', '${newPost["createdBy"]}',
+  '${newPost["email"]}', '${newPost["img_url"]}', '${newPost["locationName"]}', ${newPost["lat"]}, ${newPost["lng"]}, '${newPost["reportedDate"]}', '${newPost["country"]}', '${newPost["state"]}')`
+  let result = await conn.query(query, args);
+  return result[0]
+}
+
 router.post('/vote',async function(req, res, next){
   const vote = req.body;
   try{
