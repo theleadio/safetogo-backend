@@ -153,37 +153,41 @@ async function updateCaseMarker(vote){
 }
 
 router.get('/votes/update', async function(req,res,next){
+
+  const reference = req.query.reference;
   try{
-    let summaryVotes = await getSummaryVote();
-    console.log(summaryVotes)
-    let result = await updateSummary(summaryVotes)
+    let votes = await getVote(reference);
+    let result = await reference==='summary'? updateSummary(votes) : updateRedangpow(votes);
     return res.json([result]);
   }catch(error){
     return res.json(results)
   }
 });
 
-async function getSummaryVote(){
+async function getVote(reference){
   const conn = db.conn.promise();
   let query =``;
   query = `
     SELECT
       district,
       country,
+      case_id,
       COUNT(DISTINCT CASE WHEN upvote = 1 THEN user_id ELSE NULL END) as upvote,
       COUNT(DISTINCT CASE WHEN downvote = 1 THEN user_id ELSE NULL END) as downvote
     FROM
       ${DB_NAME}.votes
     WHERE 
-      reference = 'summary'
-  `
-  let result = await conn.query(query, [])
+      reference = '${reference}'
+    GROUP BY 1,2,3
+  `;
+  let result = await conn.query(query, []);
   return result[0]
 }
 
 async function updateSummary(votes){
   const conn = db.conn.promise();
   let query=``;
+  let result = null;
   for (let i in votes){
     query =
     `
@@ -194,11 +198,30 @@ async function updateSummary(votes){
         downvote = ${votes[i]["downvote"]}
       WHERE
         district = '${votes[i]["district"]}' AND country = '${votes[i]["country"]}'
-    `
-    console.log(query)
-    let result = await conn.query(query, [])
-    return result[0]
+    `;
+    result = await conn.query(query, []);
   }
+  return result[0]
+}
+
+async function updateRedangpow(votes){
+  const conn = db.conn.promise();
+  let query=``;
+  let result = null;
+  for (let i in votes){
+    query =
+    `
+      UPDATE
+        ${DB_NAME}.redangpow_markers
+      SET
+        upvote = ${votes[i]["upvote"]},
+        downvote = ${votes[i]["downvote"]}
+      WHERE
+        id = ${votes[i]["case_id"]}
+    `;
+    result = await conn.query(query, []);
+  }
+  return result[0]
 }
 
 
