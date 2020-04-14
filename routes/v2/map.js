@@ -59,7 +59,8 @@ async function getCasesByCountry(country){
     createdBy,
     img_url,
     locationName,
-    description as content
+    description as content,
+    'redangpow' as reference
   FROM
     safetogo.redangpow_markers
   WHERE
@@ -76,13 +77,58 @@ async function getCasesByCountry(country){
     createdBy,
     img_url,
     locationName,
-    content
+    content,
+    'safetogo' as reference
   FROM
     safetogo.safetogo_markers
   WHERE
     country = '${country}'
 
   `;
+  let result = await conn.query(query, []);
+  return result[0]
+}
+
+router.get('/borneo', asyncHandler(async function(req, res, next){
+
+  try{
+    const results = await getBorneo();
+    return res.json(results)
+  }catch(error){
+    console.log('[/borneo] error', error);
+    return res.json(error);
+  }
+}));
+
+var getBorneo = async () => {
+  const conn = db.conn.promise();
+  let query = '';
+  query = `
+  SELECT
+    id,
+    city,
+    state,
+    country,
+    lat,
+    lng,
+    active_case,
+    total_confirmed,
+    total_deaths,
+    total_recovered,
+    newly_positive,
+    level,
+    source,
+    img_url,
+    createdBy,
+    upvote,
+    downvote,
+    reference
+  FROM
+    ${DB_NAME}.borneo_markers
+  WHERE
+    country = 'Malaysia'
+    AND level <> 'No Cases'
+  `
   let result = await conn.query(query, []);
   return result[0]
 }
@@ -114,9 +160,9 @@ router.post('/vote',async function(req, res, next){
   const vote = req.body;
   try{
     let result = await insertVote(vote);
-    vote["reference"] === "summary"? updateSummary(vote):updateCaseMarker(vote);
+    vote["reference"] === "summary"? updateSummaryVote(vote):updateCaseMarker(vote);
     return res.json([result]);
-  }catch(error){
+  }catch(error){  
     console.log('[/vote] error', error);
     return res.json(results)
   }
@@ -132,23 +178,19 @@ async function insertVote(vote){
   return result[0]
 }
 
-async function updateSummary(vote){
+async function updateSummaryVote(vote){
   const conn = db.conn.promise();
-  let result = [];
-  let markerTables = [`${DB_NAME}.district_summary_markers`];
-  for(let index in markerTables){
-    query = `
-    UPDATE 
-      ${markerTables[index]}
-    SET 
-      upvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND upvote = 1),
-      downvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND downvote = 1)
-    WHERE
-      district= '${vote["district"]}' AND country = '${vote["country"]}'
-    `;
-    let rlt = await conn.query(query, []);
-    result.push(rlt);
-  }
+  let markerTables = `${DB_NAME}.district_summary_markers`;
+  query = `
+  UPDATE 
+    ${markerTables}
+  SET 
+    upvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND upvote = 1),
+    downvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE district= '${vote["district"]}' AND country = '${vote["country"]}' AND reference = '${vote["reference"]}' AND downvote = 1)
+  WHERE
+    district= '${vote["district"]}' AND country = '${vote["country"]}'
+  `;
+  let result = await conn.query(query, []);
   return result
 }
 
@@ -157,20 +199,24 @@ async function updateCaseMarker(vote){
   let query = '';
   // let current_date = utils.getUTCDate();
   let result = [];
-  let markerTables = [`${DB_NAME}.redangpow_markers`, `${DB_NAME}.safetogo_markers`]
-  for(let index in markerTables){
-    query = `
-    UPDATE 
-      ${markerTables[index]}
-    SET 
-      upvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' AND upvote = 1),
-      downvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' AND downvote = 1)
-    WHERE
-      case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' 
-    `
-    console.log(query);
-    let rlt = await conn.query(query, []);
-    result.push(rlt);
+  let markerTables = (vote["reference"] === "redangpow")? 
+                        `${DB_NAME}.redangpow_markers`: (
+                            vote["reference"] === "safetogo" ? 
+                              `${DB_NAME}.safetogo_markers`: (
+                                  vote["reference"] === "borneo" ? 
+                                    `${DB_NAME}.borneo_markers`: null))
+  if(markerTables){
+      query = `
+      UPDATE 
+        ${markerTables}
+      SET 
+        upvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' AND upvote = 1),
+        downvote = (SELECT COUNT(DISTINCT user_id) FROM ${DB_NAME}.votes WHERE case_id = ${vote["case_id"]} AND reference = '${vote["reference"]}' AND downvote = 1)
+      WHERE
+        id = ${vote["case_id"]} 
+      `
+      let rlt = await conn.query(query, []);
+      result.push(rlt);
   }
   return result
 }
